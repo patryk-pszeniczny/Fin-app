@@ -22,14 +22,11 @@ namespace Szablon {
         this->RecalculateTotals();
     }
 
-    // ====== POMOCNICZE ======
     bool FinForm::ValidateKwotaCell(System::String^ text, double% parsed)
     {
-        // Akceptuj kropkę i przecinek, usuń spacje
         String^ t = text ? text->Trim()->Replace(L' ', L'\0') : L"";
         if (String::IsNullOrWhiteSpace(t)) return false;
 
-        // Spróbuj wg kultury PL, a następnie invariant
         CultureInfo^ pl = gcnew CultureInfo(L"pl-PL");
         double val;
         if (Double::TryParse(t, NumberStyles::Number | NumberStyles::AllowLeadingSign, pl, val)) { parsed = val; return true; }
@@ -44,7 +41,6 @@ namespace Szablon {
         if (c == nullptr || c->Value == nullptr) return;
 
         double val = 0.0;
-        // Spróbuj z wartości typu double lub tekstu
         if (c->Value->GetType() == double::typeid || c->Value->GetType() == Decimal::typeid) {
             val = Convert::ToDouble(c->Value);
         }
@@ -53,24 +49,20 @@ namespace Szablon {
             if (ValidateKwotaCell(Convert::ToString(c->Value), parsed)) val = parsed;
         }
 
-        Color incomeFg = Color::FromArgb(22, 163, 74);   // zielony
-        Color expenseFg = Color::FromArgb(220, 38, 38);   // czerwony
+        Color incomeFg = Color::FromArgb(22, 163, 74);
+        Color expenseFg = Color::FromArgb(220, 38, 38);
         c->Style->ForeColor = (val >= 0.0) ? incomeFg : expenseFg;
     }
 
     void FinForm::loadRandomData()
     {
-        // Bezpiecznik
         if (this->dataGridView1 == nullptr) return;
 
-        // Wyczyść stare
         this->dataGridView1->Rows->Clear();
 
-        // Prosta paleta do kwot +/- (spójna z motywem)
-        Color incomeFg = Color::FromArgb(22, 163, 74);   // zielony
-        Color expenseFg = Color::FromArgb(220, 38, 38);  // czerwony
+        Color incomeFg = Color::FromArgb(22, 163, 74);
+        Color expenseFg = Color::FromArgb(220, 38, 38);
 
-        // Losowe dane
         cli::array<String^>^ kategorie = gcnew cli::array<String^>{
             L"Jedzenie", L"Transport", L"Mieszkanie", L"Rachunki", L"Zdrowie",
                 L"Rozrywka", L"Zakupy", L"Edukacja", L"Sport", L"Inne"
@@ -78,54 +70,43 @@ namespace Szablon {
 
         Random^ rnd = gcnew Random();
 
-        // Ile rekordów wygenerować
         const int rowsCount = 25;
 
         for (int i = 0; i < rowsCount; ++i)
         {
-            // data z ostatnich 90 dni
             int past = rnd->Next(0, 90);
             DateTime dt = DateTime::Now.AddDays(-past);
 
-            // kategoria
             String^ typ = kategorie[rnd->Next(kategorie->Length)];
 
-            // 35% to wpływy, reszta wydatki
             bool isIncome = rnd->NextDouble() < 0.35;
 
-            // generuj kwotę
             double base = isIncome ? rnd->Next(100, 1200) : rnd->Next(10, 500);
-            double cents = rnd->NextDouble(); // ułamek
+            double cents = rnd->NextDouble();
             double amount = Math::Round(base + cents, 2);
-            if (!isIncome) amount = -amount;  // wydatki ujemne
+            if (!isIncome) amount = -amount;
 
-            // Dodaj wiersz: data | typ | kwota | [przyciski]
-            // Przyciski mają UseColumnTextForButtonValue = true -> wartości można zostawić null
             int rowIdx = this->dataGridView1->Rows->Add(
-                dt.ToString(L"yyyy-MM-dd"), // albo "dd.MM.yyyy" jeżeli tak wolisz
+                dt.ToString(L"yyyy-MM-dd"),
                 typ,
-                amount,   // kolumna jest numeryczna i ma format "N2" z ApplyModernTheme
+                amount,
                 nullptr,
                 nullptr
             );
 
-            // Kolor kwoty zależnie od znaku
             DataGridViewRow^ row = this->dataGridView1->Rows[rowIdx];
             DataGridViewCell^ kwCell = row->Cells[L"kwota"];
             kwCell->Style->ForeColor = amount >= 0 ? incomeFg : expenseFg;
 
-            // Drobne tooltipy
             row->Cells[L"data"]->ToolTipText = L"Data operacji";
             row->Cells[L"typ"]->ToolTipText = L"Kategoria";
             row->Cells[L"kwota"]->ToolTipText = isIncome ? L"Wpływ" : L"Wydatek";
         }
 
-        // Opcjonalnie: posortuj malejąco po dacie
         try {
             this->dataGridView1->Sort(this->dataGridView1->Columns[L"data"], System::ComponentModel::ListSortDirection::Descending);
         }
         catch (...) {
-            // ignoruj jeśli kolumna nie pozwala na sortowanie
         }
         this->ReapplyCurrentSort(nullptr);
     }
@@ -135,7 +116,6 @@ namespace Szablon {
         outVal = 0.0;
         if (val == nullptr) return false;
 
-        // jeśli to już liczba
         if (val->GetType() == double::typeid || val->GetType() == Decimal::typeid || val->GetType() == Single::typeid || val->GetType() == Int32::typeid) {
             try { outVal = Convert::ToDouble(val); return true; }
             catch (...) { return false; }
@@ -157,15 +137,13 @@ namespace Szablon {
         outDate = DateTime::MinValue;
         if (val == nullptr) return false;
 
-        // jeśli już DateTime
         if (val->GetType() == DateTime::typeid) { outDate = *safe_cast<DateTime^>(val); return true; }
 
         String^ s = Convert::ToString(val);
         if (String::IsNullOrWhiteSpace(s)) return false;
         s = s->Trim();
 
-        // obsłuż popularne formaty które używaliśmy w loadRandomData
-        cli::array<String^>^ formats = gcnew cli::array<String^> {
+        cli::array<String^>^ formats = gcnew cli::array<String^>{
             L"yyyy-MM-dd", L"dd.MM.yyyy", L"dd/MM/yyyy", L"yyyy.MM.dd"
         };
 
@@ -181,7 +159,7 @@ namespace Szablon {
         if (this->dataGridView1 == nullptr) return;
 
         double sumIncomeAll = 0.0;
-        double sumExpenseAll = 0.0; // jako wartości ujemne (na końcu weźmiemy moduł do labela)
+        double sumExpenseAll = 0.0;
         double sumIncomeMonth = 0.0;
         double sumExpenseMonth = 0.0;
 
@@ -189,16 +167,14 @@ namespace Szablon {
         int curMonth = now.Month;
         int curYear = now.Year;
 
-        for each (DataGridViewRow ^ row in this->dataGridView1->Rows)
+        for each(DataGridViewRow ^ row in this->dataGridView1->Rows)
         {
             if (row->IsNewRow) continue;
 
-            // Kwota
             double amount;
             if (!TryParseKwota(row->Cells[L"kwota"] ? row->Cells[L"kwota"]->Value : nullptr, amount))
                 continue;
 
-            // Data (jeśli brak/niepoprawna, licz tylko do "razem")
             DateTime opDate;
             bool hasDate = TryParseDate(row->Cells[L"data"] ? row->Cells[L"data"]->Value : nullptr, opDate);
 
@@ -208,33 +184,31 @@ namespace Szablon {
                     sumIncomeMonth += amount;
             }
             else {
-                sumExpenseAll += amount; // ujemne
+                sumExpenseAll += amount;
                 if (hasDate && opDate.Month == curMonth && opDate.Year == curYear)
-                    sumExpenseMonth += amount; // ujemne
+                    sumExpenseMonth += amount;
             }
         }
 
-        // Stan konta: suma wszystkich kwot
-        double balance = sumIncomeAll + sumExpenseAll; // expenseAll jest ujemne
+        double balance = sumIncomeAll + sumExpenseAll;
 
-        // Do labeli: wydatki pokazujemy jako wartości dodatnie (moduł)
         CultureInfo^ pl = gcnew CultureInfo(L"pl-PL");
-        auto fmt = L"C2"; // waluta wg PL (zł)
+        auto fmt = L"C2";
 
-        if (this->wydatki_miesiac) this->wydatki_miesiac->Text = L"Miesiąc: "+(Math::Abs(sumExpenseMonth)).ToString()+" PLN";
-        if (this->wydatki_razem)   this->wydatki_razem->Text = L"Wszystko: "+(Math::Abs(sumExpenseAll)).ToString()+" PLN";
+        if (this->wydatki_miesiac) this->wydatki_miesiac->Text = L"Miesiąc: " + (Math::Abs(sumExpenseMonth)).ToString() + " PLN";
+        if (this->wydatki_razem)   this->wydatki_razem->Text = L"Wszystko: " + (Math::Abs(sumExpenseAll)).ToString() + " PLN";
 
         if (this->wplywy_miesiac)  this->wplywy_miesiac->Text = L"Miesiąc: " + (sumIncomeMonth).ToString() + " PLN";
         if (this->wplywy_razem)    this->wplywy_razem->Text = L"Wszystko: " + (sumIncomeAll).ToString() + " PLN";
 
-        if (this->stan_konta)      this->stan_konta->Text = L"Stan: " + (balance).ToString()+ " PLN";
+        if (this->stan_konta)      this->stan_konta->Text = L"Stan: " + (balance).ToString() + " PLN";
     }
+
     void Szablon::FinForm::ReapplyCurrentSort(System::Windows::Forms::DataGridViewRow^ preferSelect)
     {
         auto grid = this->dataGridView1;
         if (grid == nullptr) return;
 
-        // Jeśli coś jest już posortowane – zastosuj ponownie
         auto col = grid->SortedColumn;
         if (col != nullptr && grid->SortOrder != System::Windows::Forms::SortOrder::None)
         {
@@ -243,10 +217,9 @@ namespace Szablon {
                 : System::ComponentModel::ListSortDirection::Descending;
 
             try { grid->Sort(col, dir); }
-            catch (...) { /* ignore */ }
+            catch (...) {}
         }
 
-        // Przywróć zaznaczenie i przewiń do wiersza, który właśnie dodaliśmy/edytowaliśmy
         if (preferSelect != nullptr && !preferSelect->IsNewRow)
         {
             grid->ClearSelection();
@@ -260,18 +233,15 @@ namespace Szablon {
     {
         if (this->dataGridView1 == nullptr) return;
 
-        // Pobierz wartości
         String^ typVal = this->typ_textbox ? this->typ_textbox->Text->Trim() : L"";
         String^ kwotaStr = this->kwota_textbox ? this->kwota_textbox->Text->Trim() : L"";
 
-        // Prosta walidacja typu
         if (String::IsNullOrWhiteSpace(typVal)) {
             MessageBox::Show(this, L"Podaj typ/kategorię.", L"Brak danych", MessageBoxButtons::OK, MessageBoxIcon::Warning);
             if (this->typ_textbox) this->typ_textbox->Focus();
             return;
         }
 
-        // Walidacja kwoty (wykorzystuje wcześniejszą pomocniczą TryParseKwota)
         double amount = 0.0;
         if (!this->TryParseKwota(kwotaStr, amount)) {
             MessageBox::Show(this, L"Nieprawidłowa kwota. Użyj liczby, np. 123,45.", L"Błąd walidacji",
@@ -283,14 +253,11 @@ namespace Szablon {
             return;
         }
 
-        // Data = teraz
         DateTime now = DateTime::Now;
-        String^ dataStr = now.ToString(L"yyyy-MM-dd"); // lub "dd.MM.yyyy"
+        String^ dataStr = now.ToString(L"yyyy-MM-dd");
 
-        // Dodaj wiersz: data | typ | kwota | [✎] | [🗑]
         int rowIdx = this->dataGridView1->Rows->Add(dataStr, typVal, amount, nullptr, nullptr);
 
-        // Pokoloruj kwotę i zablokuj wiersz (jeśli używasz edycji przez przycisk ✎)
         DataGridViewRow^ row = this->dataGridView1->Rows[rowIdx];
         this->SetKwotaColor(row);
         row->Cells[L"data"]->ReadOnly = true;
@@ -304,7 +271,6 @@ namespace Szablon {
         this->RecalculateTotals();
     }
 
-    // Enter w polu kwota -> klik wprowadz
     void FinForm::kwota_textbox_KeyDown(System::Object^, System::Windows::Forms::KeyEventArgs^ e)
     {
         if (e->KeyCode == Keys::Enter) {
@@ -314,7 +280,6 @@ namespace Szablon {
         }
     }
 
-    // Enter w polu typ -> przejdź do kwota
     void FinForm::typ_textbox_KeyDown(System::Object^, System::Windows::Forms::KeyEventArgs^ e)
     {
         if (e->KeyCode == Keys::Enter) {
@@ -323,7 +288,7 @@ namespace Szablon {
             if (this->kwota_textbox) this->kwota_textbox->Focus();
         }
     }
-    // ====== EDYCJA / USUWANIE ======
+
     void FinForm::dataGridView1_CellContentClick(System::Object^ sender, DataGridViewCellEventArgs^ e)
     {
         if (e->RowIndex < 0 || e->ColumnIndex < 0) return;
@@ -331,7 +296,6 @@ namespace Szablon {
         auto grid = this->dataGridView1;
         auto col = grid->Columns[e->ColumnIndex];
 
-        // Klik "Usuń"
         if (col->Name == L"rem")
         {
             DataGridViewRow^ row = grid->Rows[e->RowIndex];
@@ -344,7 +308,6 @@ namespace Szablon {
             return;
         }
 
-        // Klik "Edytuj" / "Zapisz"
         if (col->Name == L"edit")
         {
             DataGridViewRow^ row = grid->Rows[e->RowIndex];
@@ -354,22 +317,17 @@ namespace Szablon {
 
             if (!isEditing)
             {
-                // Wejdź w tryb edycji wiersza
                 row->Tag = true;
-                // odblokuj edycję tylko dla 3 pierwszych kolumn
                 row->Cells[L"data"]->ReadOnly = false;
                 row->Cells[L"typ"]->ReadOnly = false;
                 row->Cells[L"kwota"]->ReadOnly = false;
 
-                // Zmień przycisk na "zapisz"
                 row->Cells[L"edit"]->Value = L"💾";
-                // Ustaw fokus na pierwszą edytowalną
                 grid->CurrentCell = row->Cells[L"data"];
                 grid->BeginEdit(true);
             }
             else
             {
-                // Zapis: walidacja "kwota"
                 DataGridViewCell^ kw = row->Cells[L"kwota"];
                 double parsed;
                 if (!ValidateKwotaCell(Convert::ToString(kw->Value), parsed))
@@ -380,19 +338,15 @@ namespace Szablon {
                     grid->BeginEdit(true);
                     return;
                 }
-                // Zastąp sformatowaną wartością (ułatwia kolorowanie i sort)
                 kw->Value = parsed;
 
-                // Zablokuj edycję pól
                 row->Cells[L"data"]->ReadOnly = true;
                 row->Cells[L"typ"]->ReadOnly = true;
                 row->Cells[L"kwota"]->ReadOnly = true;
 
-                // Zmień przycisk z powrotem
                 row->Cells[L"edit"]->Value = L"✎";
                 row->Tag = false;
 
-                // Ustaw kolor kwoty
                 SetKwotaColor(row);
             }
         }
@@ -417,7 +371,6 @@ namespace Szablon {
                 grid->Rows[e->RowIndex]->ErrorText = String::Empty;
             }
         }
-        // Możesz dodać walidację daty/kategorii, jeśli chcesz
     }
 
     void FinForm::dataGridView1_CellEndEdit(System::Object^ sender, DataGridViewCellEventArgs^ e)
@@ -428,7 +381,6 @@ namespace Szablon {
         auto row = grid->Rows[e->RowIndex];
         auto col = grid->Columns[e->ColumnIndex];
 
-        // Po edycji kwoty – ustaw kolor
         if (col->Name == L"kwota")
         {
             SetKwotaColor(row);
@@ -438,11 +390,9 @@ namespace Szablon {
             this->ReapplyCurrentSort(this->dataGridView1->Rows[e->RowIndex]);
         }
         this->RecalculateTotals();
-        // Wyczyść komunikat błędu wiersza
         row->ErrorText = String::Empty;
     }
 
-    // Klawisz Delete usuwa wybrany wiersz (z potwierdzeniem)
     void FinForm::dataGridView1_KeyDown(System::Object^ sender, System::Windows::Forms::KeyEventArgs^ e)
     {
         if (e->KeyCode == Keys::Delete)
