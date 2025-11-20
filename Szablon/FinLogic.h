@@ -1,32 +1,43 @@
 #pragma once
-
 #include <string>
-#include <vector>
-#include <random>
-#include <array>
-#include <cctype>
-#include <cstring>
-#include "FinBase.h"
+
 namespace Szablon {
-    class FinLogic {
+
+    class FinLogic
+    {
+    private:
+        std::string name;
+        std::string password;
+        double stamp;
+
     public:
         FinLogic(std::string name, std::string password);
 
-		std::string getName();
+        std::string getName();
         std::string getPassword();
-        
+
         double getStamp();
-		void setStamp(double newStamp);
-    private:
-        std::string name;
-        std::string password; // :) full protected password
-        
-        double stamp; //próg 
+        void setStamp(double newStamp);
 
-        //bool TryParseKwota(std::string val, double% outVal);
-        //bool ValidateKwotaCell(std::string val, double% parsed);
-        //bool TryParseDate(std::string val, System::DateTime% outDate);
+        // --- WALIDACJA / PARSOWANIE ---
+        bool TryParseKwota(System::Object^ val, double% outVal);
+        bool ValidateKwotaCell(System::String^ text, double% parsed);
+        bool TryParseDate(System::Object^ val, System::DateTime% outDate);
 
-        //void CalculateTotalsFrom
+        // --- LICZENIE SUM Z GRIDA ---
+        void CalculateTotalsFrom(
+            System::Windows::Forms::DataGridView^ grid,
+            double% sumIncomeAll,
+            double% sumExpenseAll,
+            double% sumIncomeMonth,
+            double% sumExpenseMonth,
+            double% balance
+        );
+
+        // --- LOSOWE DANE DO GRIDA ---
+        void LoadRandomDataToGrid(
+            System::Windows::Forms::DataGridView^ grid
+        );
     };
+
 }

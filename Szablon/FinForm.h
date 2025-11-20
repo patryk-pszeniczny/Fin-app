@@ -23,9 +23,6 @@ namespace Szablon {
 
 		void init();
 		void RecalculateTotals();
-		bool TryParseKwota(System::Object^ val, double% outVal);
-		bool TryParseDate(System::Object^ val, System::DateTime% outDate);
-		void loadRandomData();
 		void InitTypeCombo();
 		void dataGridView1_CellContentClick(System::Object^ sender, System::Windows::Forms::DataGridViewCellEventArgs^ e);
 		void dataGridView1_CellValidating(System::Object^ sender, System::Windows::Forms::DataGridViewCellValidatingEventArgs^ e);
@@ -33,7 +30,6 @@ namespace Szablon {
 		void dataGridView1_KeyDown(System::Object^ sender, System::Windows::Forms::KeyEventArgs^ e);
 
 		void UpdateStampFromLabel(double balance);
-		bool ValidateKwotaCell(System::String^ text, double% parsed);
 		void SetKwotaColor(System::Windows::Forms::DataGridViewRow^ row);
 		void dataGridView1_RowsAdded(System::Object^ sender, System::Windows::Forms::DataGridViewRowsAddedEventArgs^ e);
 		void dataGridView1_RowsRemoved(System::Object^ sender, System::Windows::Forms::DataGridViewRowsRemovedEventArgs^ e);
