@@ -120,6 +120,7 @@ namespace Szablon {
             incMonth, expMonth,
             bal
         );
+		bal = Math::Round(bal, 2);
 
         if (wydatki_miesiac) wydatki_miesiac->Text = L"Miesiąc: " + Math::Abs(expMonth).ToString() + L" PLN";
         if (wydatki_razem)   wydatki_razem->Text = L"Wszystko: " + Math::Abs(expAll).ToString() + L" PLN";
