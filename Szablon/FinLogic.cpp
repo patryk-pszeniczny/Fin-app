@@ -1,23 +1,28 @@
 #include "FinLogic.h"
 #include "FinBase.h"
 namespace Szablon {
-	FinLogic::FinLogic() {
 
+	FinLogic::FinLogic(std::string name, std::string password)
+	{
+		this->name = name;
+		this->password = password;
+		this->stamp = 50;
 	}
-
-	bool FinLogic::isUserLoaded() {
-		return !this->finbase->getTypePath("user").empty();
+	std::string FinLogic::getName()
+	{
+		return this->name;
 	}
-
-	bool FinLogic::isUserLogLoaded() {
-		return !this->finbase->getTypePath("user_log").empty();
+	std::string FinLogic::getPassword()
+	{
+		return this->password;
 	}
-
-	FinBase* FinLogic::getFinBase(){
-		return this->finbase;
+	double FinLogic::getStamp()
+	{
+		return this->stamp;
 	}
-	void FinLogic::setFinBase(FinBase* base) {
-		this->finbase = base;
+	void FinLogic::setStamp(double newStamp)
+	{
+		this->stamp = newStamp;
 	}
 }
 

@@ -1,4 +1,5 @@
 ﻿#include "FinForm.h"
+#include <regex>
 
 using namespace System;
 using namespace System::Windows::Forms;
@@ -7,20 +8,116 @@ using namespace System::Drawing;
 
 namespace Szablon {
 
-    void Szablon::FinForm::dataGridView1_RowsAdded(System::Object^, System::Windows::Forms::DataGridViewRowsAddedEventArgs^)
+    FinForm::FinForm(FinLogic* finlogic)
+    {
+        this->_finlogic = finlogic;
+        this->init();
+    }
+    void FinForm::init() {
+        InitializeComponent();
+        ApplyModernTheme();
+        ApplyEvents();
+        RecalculateTotals();
+        InitTypeCombo();
+    }
+    void FinForm::dataGridView1_RowsAdded(System::Object^, System::Windows::Forms::DataGridViewRowsAddedEventArgs^)
     {
         this->RecalculateTotals();
     }
 
-    void Szablon::FinForm::dataGridView1_RowsRemoved(System::Object^, System::Windows::Forms::DataGridViewRowsRemovedEventArgs^)
+    void FinForm::dataGridView1_RowsRemoved(System::Object^, System::Windows::Forms::DataGridViewRowsRemovedEventArgs^)
     {
         this->RecalculateTotals();
     }
 
-    void Szablon::FinForm::dataGridView1_Sorted(System::Object^, System::EventArgs^)
+    void FinForm::dataGridView1_Sorted(System::Object^, System::EventArgs^)
     {
         this->RecalculateTotals();
     }
+    bool TryParseAmountFromLabel(String^ text, double% outVal)
+    {
+        outVal = 0.0;
+ 
+
+        if (String::IsNullOrWhiteSpace(text)) return false;
+
+
+        String^ num = text;
+
+        // próbuj PL i invariant
+        CultureInfo^ pl = gcnew CultureInfo(L"pl-PL");
+        double tmp;
+        if (Double::TryParse(num, NumberStyles::Number | NumberStyles::AllowLeadingSign, pl, tmp)) {
+            outVal = tmp; return true;
+        }
+        if (Double::TryParse(num, NumberStyles::Number | NumberStyles::AllowLeadingSign, CultureInfo::InvariantCulture, tmp)) {
+            outVal = tmp; return true;
+        }
+        return false;
+    }
+    void FinForm::UpdateStampFromLabel(double balance)
+    {
+        if (this->pictureBox_stamp == nullptr) return;
+
+        String^ fileName = (balance >= this->_finlogic->getStamp()) ? L"success.jpg" : L"fail.jpg";
+
+        // To daje absolutną ścieżkę z katalogu roboczego (tak jak działało wcześniej)
+        String^ fullPath = System::IO::Path::GetFullPath(fileName);
+
+        // jeśli już mamy ten sam obrazek -> nic nie rób
+        String^ currentPath = dynamic_cast<String^>(this->pictureBox_stamp->Tag);
+        if (currentPath != nullptr &&
+            String::Equals(currentPath, fullPath, StringComparison::OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (!System::IO::File::Exists(fullPath)) {
+            System::Windows::Forms::MessageBox::Show(
+                L"Brak pliku obrazka: " + fullPath +
+                L"\nCurrentDirectory: " + System::Environment::CurrentDirectory
+            );
+            return;
+        }
+
+        System::Drawing::Image^ newImg = nullptr;
+
+        try
+        {
+            array<System::Byte>^ bytes = System::IO::File::ReadAllBytes(fullPath);
+            if (bytes == nullptr || bytes->Length == 0) {
+                System::Windows::Forms::MessageBox::Show(L"Pusty plik obrazka: " + fullPath);
+                return;
+            }
+
+            auto ms = gcnew System::IO::MemoryStream(bytes);
+            ms->Position = 0;
+
+            auto tmp = System::Drawing::Image::FromStream(ms, true, true);
+            newImg = safe_cast<System::Drawing::Image^>(tmp->Clone());
+
+            delete tmp;
+            delete ms;
+        }
+        catch (System::Exception^ ex)
+        {
+            System::Windows::Forms::MessageBox::Show(
+                L"Błąd wczytywania obrazka: " + ex->Message +
+                L"\nŚcieżka: " + fullPath
+            );
+            return;
+        }
+
+        // podmień obraz i zwolnij stary dopiero po sukcesie
+        auto oldImg = this->pictureBox_stamp->Image;
+        this->pictureBox_stamp->Image = newImg;
+        this->pictureBox_stamp->Tag = fullPath;
+        this->pictureBox_stamp->SizeMode = PictureBoxSizeMode::Zoom;
+
+        if (oldImg != nullptr) delete oldImg;
+    }
+
+
 
     bool FinForm::ValidateKwotaCell(System::String^ text, double% parsed)
     {
@@ -202,6 +299,7 @@ namespace Szablon {
         if (this->wplywy_razem)    this->wplywy_razem->Text = L"Wszystko: " + (sumIncomeAll).ToString() + " PLN";
 
         if (this->stan_konta)      this->stan_konta->Text = L"Stan: " + (balance).ToString() + " PLN";
+		this->UpdateStampFromLabel(balance);
     }
 
     void Szablon::FinForm::ReapplyCurrentSort(System::Windows::Forms::DataGridViewRow^ preferSelect)
@@ -228,20 +326,63 @@ namespace Szablon {
             catch (...) {}
         }
     }
+    void FinForm::button_stamp_Click(System::Object^ sender, System::EventArgs^ e)
+    {
+        if (this->dataGridView1 == nullptr) return;
+
+        String^ kwotaStr = this->textBox_stamp ? this->textBox_stamp->Text->Trim() : L"";
+        double amount = 0.0;
+        if (!this->TryParseKwota(kwotaStr, amount)) {
+            MessageBox::Show(this, L"Nieprawidłowa kwota. Użyj liczby, np. 123,45.", L"Błąd walidacji",
+                MessageBoxButtons::OK, MessageBoxIcon::Warning);
+            if (this->textBox_stamp) {
+                this->textBox_stamp->Focus();
+                this->textBox_stamp->SelectAll();
+            }
+            return;
+        }
+        this->_finlogic->setStamp(amount);
+        this->RecalculateTotals();
+        MessageBox::Show(this, L"Zaktualizowano pieczątkę do wartości: " + amount.ToString() + L".", L"Sukces",
+			MessageBoxButtons::OK, MessageBoxIcon::Information);
+    }
+    void FinForm::button_random_Click(System::Object^ sender, System::EventArgs^ e)
+    {
+        this->loadRandomData();
+		this->RecalculateTotals();
+    }
+    void FinForm::InitTypeCombo()
+    {
+        if (this->type_combobox == nullptr) return;
+        this->type_combobox->DropDownStyle = ComboBoxStyle::DropDown;
+        this->type_combobox->AutoCompleteMode = AutoCompleteMode::SuggestAppend;
+        this->type_combobox->AutoCompleteSource = AutoCompleteSource::ListItems;
+        this->type_combobox->Items->Clear();
+        cli::array<String^>^ kategorie = gcnew cli::array<String^>{
+            L"Jedzenie", L"Transport", L"Mieszkanie", L"Rachunki", L"Zdrowie",
+                L"Rozrywka", L"Zakupy", L"Edukacja", L"Sport", L"Inne"
+        };
+
+        for each (String ^ k in kategorie)
+            this->type_combobox->Items->Add(k);
+    }
 
     void FinForm::wprowadz_button_Click(System::Object^, System::EventArgs^)
     {
         if (this->dataGridView1 == nullptr) return;
 
-        String^ typVal = this->typ_textbox ? this->typ_textbox->Text->Trim() : L"";
+        String^ typVal = this->type_combobox ? this->type_combobox->Text->Trim() : L"";
         String^ kwotaStr = this->kwota_textbox ? this->kwota_textbox->Text->Trim() : L"";
 
         if (String::IsNullOrWhiteSpace(typVal)) {
-            MessageBox::Show(this, L"Podaj typ/kategorię.", L"Brak danych", MessageBoxButtons::OK, MessageBoxIcon::Warning);
-            if (this->typ_textbox) this->typ_textbox->Focus();
+            MessageBox::Show(this, L"Podaj typ/kategorię.", L"Brak danych",
+                MessageBoxButtons::OK, MessageBoxIcon::Warning);
+            if (this->type_combobox) this->type_combobox->Focus();
             return;
         }
-
+        if (this->type_combobox && !this->type_combobox->Items->Contains(typVal)){
+            this->type_combobox->Items->Add(typVal);
+        }
         double amount = 0.0;
         if (!this->TryParseKwota(kwotaStr, amount)) {
             MessageBox::Show(this, L"Nieprawidłowa kwota. Użyj liczby, np. 123,45.", L"Błąd walidacji",
@@ -280,7 +421,7 @@ namespace Szablon {
         }
     }
 
-    void FinForm::typ_textbox_KeyDown(System::Object^, System::Windows::Forms::KeyEventArgs^ e)
+    void FinForm::type_combobox_KeyDown(System::Object^, System::Windows::Forms::KeyEventArgs^ e)
     {
         if (e->KeyCode == Keys::Enter) {
             e->Handled = true;
@@ -288,6 +429,7 @@ namespace Szablon {
             if (this->kwota_textbox) this->kwota_textbox->Focus();
         }
     }
+
 
     void FinForm::dataGridView1_CellContentClick(System::Object^ sender, DataGridViewCellEventArgs^ e)
     {

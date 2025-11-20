@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "FinLogic.h"
 
 namespace Szablon {
 
@@ -13,24 +14,25 @@ namespace Szablon {
 	public ref class FinForm : public System::Windows::Forms::Form
 	{
 	public:
-		FinForm(void)
-		{
-			InitializeComponent();
-			ApplyModernTheme();
-			loadRandomData();
-			ApplyEvents();
-			RecalculateTotals();
-		}
-
+		FinForm(FinLogic* finlogic);
+	
+	private: System::Windows::Forms::Button^ button_random;
+	public:
 	private:
+		FinLogic* _finlogic;
+
+		void init();
 		void RecalculateTotals();
 		bool TryParseKwota(System::Object^ val, double% outVal);
 		bool TryParseDate(System::Object^ val, System::DateTime% outDate);
 		void loadRandomData();
+		void InitTypeCombo();
 		void dataGridView1_CellContentClick(System::Object^ sender, System::Windows::Forms::DataGridViewCellEventArgs^ e);
 		void dataGridView1_CellValidating(System::Object^ sender, System::Windows::Forms::DataGridViewCellValidatingEventArgs^ e);
 		void dataGridView1_CellEndEdit(System::Object^ sender, System::Windows::Forms::DataGridViewCellEventArgs^ e);
 		void dataGridView1_KeyDown(System::Object^ sender, System::Windows::Forms::KeyEventArgs^ e);
+
+		void UpdateStampFromLabel(double balance);
 		bool ValidateKwotaCell(System::String^ text, double% parsed);
 		void SetKwotaColor(System::Windows::Forms::DataGridViewRow^ row);
 		void dataGridView1_RowsAdded(System::Object^ sender, System::Windows::Forms::DataGridViewRowsAddedEventArgs^ e);
@@ -38,8 +40,10 @@ namespace Szablon {
 		void dataGridView1_Sorted(System::Object^ sender, System::EventArgs^ e);
 		void wprowadz_button_Click(System::Object^ sender, System::EventArgs^ e);
 		void kwota_textbox_KeyDown(System::Object^ sender, System::Windows::Forms::KeyEventArgs^ e);
-		void typ_textbox_KeyDown(System::Object^ sender, System::Windows::Forms::KeyEventArgs^ e);
+		void type_combobox_KeyDown(System::Object^, System::Windows::Forms::KeyEventArgs^ e);
 		void ReapplyCurrentSort(System::Windows::Forms::DataGridViewRow^ preferSelect);
+		void button_stamp_Click(System::Object^ sender, System::EventArgs^ e);
+		void button_random_Click(System::Object^ sender, System::EventArgs^ e);
 
 	protected:
 		~FinForm()
@@ -68,8 +72,19 @@ namespace Szablon {
 	private: System::Windows::Forms::TextBox^ kwota_textbox;
 
 	private: System::Windows::Forms::GroupBox^ groupBox5;
-	private: System::Windows::Forms::TextBox^ typ_textbox;
+
 	private: System::Windows::Forms::Button^ wprowadz_button;
+	private: System::Windows::Forms::ComboBox^ type_combobox;
+	private: System::Windows::Forms::PictureBox^ pictureBox_stamp;
+
+
+	private: System::Windows::Forms::GroupBox^ groupBox7;
+	private: System::Windows::Forms::Button^ button_stamp;
+
+	private: System::Windows::Forms::GroupBox^ groupBox8;
+	private: System::Windows::Forms::TextBox^ textBox_stamp;
+
+
 
 
 
@@ -103,7 +118,13 @@ namespace Szablon {
 			this->groupBox6 = (gcnew System::Windows::Forms::GroupBox());
 			this->kwota_textbox = (gcnew System::Windows::Forms::TextBox());
 			this->groupBox5 = (gcnew System::Windows::Forms::GroupBox());
-			this->typ_textbox = (gcnew System::Windows::Forms::TextBox());
+			this->type_combobox = (gcnew System::Windows::Forms::ComboBox());
+			this->pictureBox_stamp = (gcnew System::Windows::Forms::PictureBox());
+			this->groupBox7 = (gcnew System::Windows::Forms::GroupBox());
+			this->button_stamp = (gcnew System::Windows::Forms::Button());
+			this->groupBox8 = (gcnew System::Windows::Forms::GroupBox());
+			this->textBox_stamp = (gcnew System::Windows::Forms::TextBox());
+			this->button_random = (gcnew System::Windows::Forms::Button());
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->dataGridView1))->BeginInit();
 			this->groupBox1->SuspendLayout();
 			this->groupBox2->SuspendLayout();
@@ -111,6 +132,9 @@ namespace Szablon {
 			this->groupBox4->SuspendLayout();
 			this->groupBox6->SuspendLayout();
 			this->groupBox5->SuspendLayout();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->pictureBox_stamp))->BeginInit();
+			this->groupBox7->SuspendLayout();
+			this->groupBox8->SuspendLayout();
 			this->SuspendLayout();
 			// 
 			// dataGridView1
@@ -296,7 +320,7 @@ namespace Szablon {
 			// 
 			// groupBox5
 			// 
-			this->groupBox5->Controls->Add(this->typ_textbox);
+			this->groupBox5->Controls->Add(this->type_combobox);
 			this->groupBox5->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 12, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(238)));
 			this->groupBox5->Location = System::Drawing::Point(6, 19);
@@ -306,20 +330,92 @@ namespace Szablon {
 			this->groupBox5->TabStop = false;
 			this->groupBox5->Text = L"Typ";
 			// 
-			// typ_textbox
+			// type_combobox
 			// 
-			this->typ_textbox->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 11.25F, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
+			this->type_combobox->FormattingEnabled = true;
+			this->type_combobox->Location = System::Drawing::Point(6, 26);
+			this->type_combobox->Name = L"type_combobox";
+			this->type_combobox->Size = System::Drawing::Size(290, 28);
+			this->type_combobox->TabIndex = 0;
+			// 
+			// pictureBox_stamp
+			// 
+			this->pictureBox_stamp->Location = System::Drawing::Point(773, 95);
+			this->pictureBox_stamp->Name = L"pictureBox_stamp";
+			this->pictureBox_stamp->Size = System::Drawing::Size(505, 505);
+			this->pictureBox_stamp->SizeMode = System::Windows::Forms::PictureBoxSizeMode::Zoom;
+			this->pictureBox_stamp->TabIndex = 10;
+			this->pictureBox_stamp->TabStop = false;
+			// 
+			// groupBox7
+			// 
+			this->groupBox7->Controls->Add(this->button_stamp);
+			this->groupBox7->Controls->Add(this->groupBox8);
+			this->groupBox7->Location = System::Drawing::Point(773, 617);
+			this->groupBox7->Name = L"groupBox7";
+			this->groupBox7->Size = System::Drawing::Size(505, 95);
+			this->groupBox7->TabIndex = 11;
+			this->groupBox7->TabStop = false;
+			// 
+			// button_stamp
+			// 
+			this->button_stamp->BackColor = System::Drawing::Color::Lime;
+			this->button_stamp->BackgroundImageLayout = System::Windows::Forms::ImageLayout::Stretch;
+			this->button_stamp->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+			this->button_stamp->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 14.25F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(238)));
-			this->typ_textbox->Location = System::Drawing::Point(6, 25);
-			this->typ_textbox->Name = L"typ_textbox";
-			this->typ_textbox->Size = System::Drawing::Size(305, 24);
-			this->typ_textbox->TabIndex = 0;
+			this->button_stamp->Location = System::Drawing::Point(265, 30);
+			this->button_stamp->Name = L"button_stamp";
+			this->button_stamp->Size = System::Drawing::Size(234, 52);
+			this->button_stamp->TabIndex = 2;
+			this->button_stamp->Text = L"WPROWADŹ";
+			this->button_stamp->UseVisualStyleBackColor = false;
+			this->button_stamp->Click += gcnew System::EventHandler(this, &FinForm::button_stamp_Click);
+			// 
+			// groupBox8
+			// 
+			this->groupBox8->Controls->Add(this->textBox_stamp);
+			this->groupBox8->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 12, System::Drawing::FontStyle::Bold));
+			this->groupBox8->Location = System::Drawing::Point(6, 19);
+			this->groupBox8->Name = L"groupBox8";
+			this->groupBox8->Size = System::Drawing::Size(231, 63);
+			this->groupBox8->TabIndex = 1;
+			this->groupBox8->TabStop = false;
+			this->groupBox8->Text = L"Próg";
+			// 
+			// textBox_stamp
+			// 
+			this->textBox_stamp->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 11.25F, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
+				static_cast<System::Byte>(238)));
+			this->textBox_stamp->Location = System::Drawing::Point(7, 26);
+			this->textBox_stamp->Name = L"textBox_stamp";
+			this->textBox_stamp->Size = System::Drawing::Size(200, 24);
+			this->textBox_stamp->TabIndex = 0;
+			this->textBox_stamp->Text = L"50";
+			// 
+			// button_random
+			// 
+			this->button_random->BackColor = System::Drawing::Color::Lime;
+			this->button_random->BackgroundImageLayout = System::Windows::Forms::ImageLayout::Stretch;
+			this->button_random->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+			this->button_random->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 14.25F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
+				static_cast<System::Byte>(238)));
+			this->button_random->Location = System::Drawing::Point(773, 23);
+			this->button_random->Name = L"button_random";
+			this->button_random->Size = System::Drawing::Size(505, 52);
+			this->button_random->TabIndex = 12;
+			this->button_random->Text = L"LOAD RANDOM DATA";
+			this->button_random->UseVisualStyleBackColor = false;
+			this->button_random->Click += gcnew System::EventHandler(this, &FinForm::button_random_Click);
 			// 
 			// FinForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-			this->ClientSize = System::Drawing::Size(765, 724);
+			this->ClientSize = System::Drawing::Size(1293, 724);
+			this->Controls->Add(this->button_random);
+			this->Controls->Add(this->groupBox7);
+			this->Controls->Add(this->pictureBox_stamp);
 			this->Controls->Add(this->groupBox4);
 			this->Controls->Add(this->groupBox3);
 			this->Controls->Add(this->groupBox2);
@@ -339,7 +435,10 @@ namespace Szablon {
 			this->groupBox6->ResumeLayout(false);
 			this->groupBox6->PerformLayout();
 			this->groupBox5->ResumeLayout(false);
-			this->groupBox5->PerformLayout();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->pictureBox_stamp))->EndInit();
+			this->groupBox7->ResumeLayout(false);
+			this->groupBox8->ResumeLayout(false);
+			this->groupBox8->PerformLayout();
 			this->ResumeLayout(false);
 
 		}
@@ -349,8 +448,7 @@ namespace Szablon {
 		void ApplyEvents() {
 			this->wprowadz_button->Click += gcnew System::EventHandler(this, &FinForm::wprowadz_button_Click);
 			this->kwota_textbox->KeyDown += gcnew System::Windows::Forms::KeyEventHandler(this, &FinForm::kwota_textbox_KeyDown);
-			this->typ_textbox->KeyDown += gcnew System::Windows::Forms::KeyEventHandler(this, &FinForm::typ_textbox_KeyDown);
-
+		
 			this->dataGridView1->RowsAdded += gcnew System::Windows::Forms::DataGridViewRowsAddedEventHandler(this, &FinForm::dataGridView1_RowsAdded);
 			this->dataGridView1->RowsRemoved += gcnew System::Windows::Forms::DataGridViewRowsRemovedEventHandler(this, &FinForm::dataGridView1_RowsRemoved);
 			this->dataGridView1->Sorted += gcnew System::EventHandler(this, &FinForm::dataGridView1_Sorted);
@@ -360,6 +458,7 @@ namespace Szablon {
 			this->dataGridView1->CellEndEdit += gcnew System::Windows::Forms::DataGridViewCellEventHandler(this, &FinForm::dataGridView1_CellEndEdit);
 			this->dataGridView1->KeyDown += gcnew System::Windows::Forms::KeyEventHandler(this, &FinForm::dataGridView1_KeyDown);
 			this->dataGridView1->EditMode = System::Windows::Forms::DataGridViewEditMode::EditOnEnter;
+			this->type_combobox->KeyDown += gcnew System::Windows::Forms::KeyEventHandler(this, &FinForm::type_combobox_KeyDown);
 			this->data->ReadOnly = false;
 			this->typ->ReadOnly = false;
 			this->kwota->ReadOnly = false;

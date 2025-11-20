@@ -5,14 +5,12 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainForm.cpp" />
     <ClCompile Include="AboutForm.cpp" />
-    <ClCompile Include="FinBase.cpp" />
     <ClCompile Include="FinForm.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FinLogic.h" />
     <ClInclude Include="MainForm.h" />
     <ClInclude Include="AboutForm.h" />
-    <ClInclude Include="FinBase.h" />
     <ClInclude Include="FinForm.h" />
   </ItemGroup>
 </Project>

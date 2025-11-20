@@ -10,12 +10,23 @@
 namespace Szablon {
     class FinLogic {
     public:
-        FinLogic();
-        bool isUserLoaded();
-        bool isUserLogLoaded();
-        FinBase* getFinBase();
-        void setFinBase(FinBase* base);
+        FinLogic(std::string name, std::string password);
+
+		std::string getName();
+        std::string getPassword();
+        
+        double getStamp();
+		void setStamp(double newStamp);
     private:
-        FinBase* finbase;
+        std::string name;
+        std::string password; // :) full protected password
+        
+        double stamp; //próg 
+
+        //bool TryParseKwota(std::string val, double% outVal);
+        //bool ValidateKwotaCell(std::string val, double% parsed);
+        //bool TryParseDate(std::string val, System::DateTime% outDate);
+
+        //void CalculateTotalsFrom
     };
 }

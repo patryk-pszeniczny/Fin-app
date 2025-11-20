@@ -119,7 +119,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AboutForm.cpp" />
-    <ClCompile Include="FinBase.cpp" />
     <ClCompile Include="FinForm.cpp" />
     <ClCompile Include="FinLogic.cpp" />
     <ClCompile Include="main.cpp" />
@@ -129,7 +128,6 @@
     <ClInclude Include="AboutForm.h">
       <FileType>CppForm</FileType>
     </ClInclude>
-    <ClInclude Include="FinBase.h" />
     <ClInclude Include="FinForm.h">
       <FileType>CppForm</FileType>
     </ClInclude>
@@ -139,6 +137,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="AboutForm.resx">
+      <DependentUpon>AboutForm.h</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="FinForm.resx">
       <DependentUpon>FinForm.h</DependentUpon>
     </EmbeddedResource>
